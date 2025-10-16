@@ -1,134 +1,168 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { User, Mail, Phone, MapPin, Activity, Loader } from 'lucide-react';
 import { profileAPI } from '../utils/api';
+import { getUserData } from '../utils/auth';
 
-export default function Profile() {
-  const navigate = useNavigate();
+const Profile = () => {
+  const userData = getUserData();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+    loadProfile();
+  }, []);
 
-    profileAPI.getProfile()
-      .then(res => {
-        setProfile(res.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to load profile:', err);
-        setLoading(false);
-      });
-  }, [navigate]);
+  const loadProfile = async () => {
+    try {
+      const response = await profileAPI.getProfile();
+      setProfile(response.data);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Failed to load profile</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
-          >
-            Back to Dashboard
-          </button>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <Loader className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm p-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-gray-600 hover:text-primary"
-          >
-            ← Back
-          </button>
-          <h1 className="text-2xl font-bold text-primary">👤 My Profile</h1>
-        </div>
-      </header>
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
+        <p className="text-gray-600">View your personal and medical information</p>
+      </div>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-8">
+      {/* Profile Card */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        {/* Profile Header */}
+        <div className="bg-gradient-to-r from-primary to-primary-dark p-8 text-white">
+          <div className="flex items-center gap-6">
             <img
-              src={profile.profile_image}
-              alt={profile.name}
-              className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-primary"
+              src={userData.profileImage || 'https://via.placeholder.com/100'}
+              alt="Profile"
+              className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/100';
+              }}
             />
-            <h2 className="text-2xl font-bold text-gray-800">{profile.name}</h2>
-            <p className="text-gray-600">{profile.email}</p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Age</p>
-                  <p className="font-semibold">{profile.age || 'Not set'}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Gender</p>
-                  <p className="font-semibold">{profile.gender || 'Not set'}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <p className="font-semibold">{profile.phone || 'Not set'}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Location</p>
-                  <p className="font-semibold">{profile.location_preference || 'Not set'}</p>
-                </div>
-              </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-1">{profile?.name}</h2>
+              <p className="text-blue-100 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                {profile?.email}
+              </p>
             </div>
-
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-semibold mb-2">Account Status</h3>
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  profile.profile_completed 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {profile.profile_completed ? '✓ Profile Complete' : '⚠ Profile Incomplete'}
-                </span>
-              </div>
-            </div>
-
-            {!profile.profile_completed && (
-              <button
-                onClick={() => navigate('/profile-setup')}
-                className="w-full px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors"
-              >
-                Complete Profile
-              </button>
-            )}
           </div>
         </div>
-      </main>
+
+        {/* Profile Information */}
+        <div className="p-8">
+          {/* Basic Information */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" />
+              Basic Information
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Age</label>
+                <p className="text-gray-900 font-semibold">{profile?.age || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Gender</label>
+                <p className="text-gray-900 font-semibold">{profile?.gender || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <Phone className="w-4 h-4" />
+                  Phone Number
+                </label>
+                <p className="text-gray-900 font-semibold">{profile?.phone || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  Location
+                </label>
+                <p className="text-gray-900 font-semibold">{profile?.location_preference || 'Not specified'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Medical Information */}
+          <div className="mb-8 pt-8 border-t border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              Medical Information
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Blood Group</label>
+                <p className="text-gray-900 font-semibold">{profile?.blood_group || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Height</label>
+                <p className="text-gray-900 font-semibold">
+                  {profile?.height ? `${profile.height} cm` : 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Weight</label>
+                <p className="text-gray-900 font-semibold">
+                  {profile?.weight ? `${profile.weight} kg` : 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Allergies</label>
+                <p className="text-gray-900 font-semibold">{profile?.allergies || 'None reported'}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Chronic Conditions</label>
+                <p className="text-gray-900 font-semibold">
+                  {profile?.chronic_conditions || 'None reported'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Current Medications</label>
+                <p className="text-gray-900 font-semibold">
+                  {profile?.current_medications || 'None reported'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Emergency Contact */}
+          <div className="pt-8 border-t border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Emergency Contact</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Contact Name</label>
+                <p className="text-gray-900 font-semibold">
+                  {profile?.emergency_contact || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Contact Phone</label>
+                <p className="text-gray-900 font-semibold">
+                  {profile?.emergency_contact_phone || 'Not specified'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default Profile;

@@ -1,173 +1,203 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Search, MapPin, Phone, Star, Globe, ExternalLink, Loader } from 'lucide-react';
 import { hospitalAPI } from '../utils/api';
+import { getUserData } from '../utils/auth';
 
-export default function Hospitals() {
-  const navigate = useNavigate();
+const Hospitals = () => {
+  const userData = getUserData();
   const [location, setLocation] = useState('');
   const [radius, setRadius] = useState(5000);
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    // Load user's location preference
-    const savedLocation = localStorage.getItem('location_preference');
-    if (savedLocation) setLocation(savedLocation);
-  }, [navigate]);
-
-  const handleSearch = async () => {
-    if (!location.trim()) {
-      alert('Please enter a location');
-      return;
-    }
-
+  const handleSearch = async (e) => {
+    e.preventDefault();
     setLoading(true);
+    setSearched(true);
+
     try {
-      const res = await hospitalAPI.findNearby(location, radius);
-      setHospitals(res.data.hospitals || []);
+      const response = await hospitalAPI.findNearby(location || undefined, radius);
+      setHospitals(response.data.hospitals);
     } catch (error) {
-      alert('Failed to find hospitals: ' + error.message);
+      console.error('Error finding hospitals:', error);
+      alert('Failed to find hospitals. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm p-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-gray-600 hover:text-primary"
-          >
-            ← Back
-          </button>
-          <h1 className="text-2xl font-bold text-primary">🏥 Find Hospitals</h1>
-        </div>
-      </header>
+  const getDirections = (hospital) => {
+    if (hospital.location.lat && hospital.location.lng) {
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${hospital.location.lat},${hospital.location.lng}`,
+        '_blank'
+      );
+    }
+  };
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+  return (
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Nearby Hospitals</h1>
+        <p className="text-gray-600">Locate healthcare facilities near you</p>
+      </div>
+
+      {/* Search Form */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <form onSubmit={handleSearch} className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <MapPin className="inline w-4 h-4 mr-1" />
+                Location
+              </label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="City, State or Address"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder={`Default: Your saved location`}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
               />
+              <p className="text-xs text-gray-500 mt-1">Leave empty to use your saved location</p>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Radius: {(radius / 1000).toFixed(1)} km
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search Radius: {(radius / 1000).toFixed(1)} km
               </label>
               <input
                 type="range"
+                value={radius}
+                onChange={(e) => setRadius(parseInt(e.target.value))}
                 min="1000"
                 max="10000"
                 step="1000"
-                value={radius}
-                onChange={(e) => setRadius(parseInt(e.target.value))}
-                className="w-full"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
               />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>1 km</span>
+                <span>10 km</span>
+              </div>
             </div>
           </div>
-          <button
-            onClick={handleSearch}
-            disabled={loading}
-            className="mt-4 w-full md:w-auto px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Searching...' : 'Search Hospitals'}
-          </button>
-        </div>
 
-        {hospitals.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hospitals.map((hospital, idx) => (
-              <div key={idx} className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold">{hospital.name}</h3>
-                  {hospital.open_now !== undefined && (
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      hospital.open_now ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {hospital.open_now ? 'Open' : 'Closed'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full md:w-auto px-8 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader className="w-5 h-5 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                Search Hospitals
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* Results */}
+      {loading && (
+        <div className="text-center py-12">
+          <Loader className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-gray-600">Finding nearby hospitals...</p>
+        </div>
+      )}
+
+      {!loading && searched && hospitals.length === 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+          <p className="text-gray-700">No hospitals found in the specified area. Try increasing the search radius.</p>
+        </div>
+      )}
+
+      {!loading && hospitals.length > 0 && (
+        <>
+          <div className="mb-4 text-sm text-gray-600">
+            Found {hospitals.length} hospital{hospitals.length !== 1 ? 's' : ''} near you
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {hospitals.map((hospital, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-6"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex-1">
+                    {hospital.name}
+                  </h3>
+                  {hospital.is_open !== null && (
+                    <span
+                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        hospital.is_open
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {hospital.is_open ? 'Open' : 'Closed'}
                     </span>
                   )}
                 </div>
 
-                {hospital.rating && (
-                  <div className="flex items-center gap-1 mb-2">
-                    <span className="text-yellow-500">⭐</span>
-                    <span className="font-semibold">{hospital.rating}</span>
-                    {hospital.user_ratings_total && (
-                      <span className="text-sm text-gray-500">({hospital.user_ratings_total})</span>
-                    )}
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-start gap-2 text-sm text-gray-600">
+                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                    <span>{hospital.address}</span>
                   </div>
-                )}
 
-                <div className="space-y-2 text-sm">
-                  {hospital.address && (
-                    <p className="flex items-start gap-2">
-                      <span>📍</span>
-                      <span className="text-gray-600">{hospital.address}</span>
-                    </p>
-                  )}
-
-                  {hospital.phone && (
-                    <p className="flex items-center gap-2">
-                      <span>📞</span>
-                      <a href={`tel:${hospital.phone}`} className="text-primary hover:underline">
+                  {hospital.phone !== 'Phone not available' && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Phone className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                      <a href={`tel:${hospital.phone}`} className="hover:text-primary">
                         {hospital.phone}
                       </a>
-                    </p>
+                    </div>
                   )}
 
-                  {hospital.website && (
-                    <p className="flex items-center gap-2">
-                      <span>🌐</span>
+                  {hospital.rating !== 'No rating' && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Star className="w-4 h-4 flex-shrink-0 text-yellow-400 fill-yellow-400" />
+                      <span>{hospital.rating} / 5</span>
+                    </div>
+                  )}
+
+                  {hospital.website !== 'Not available' && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Globe className="w-4 h-4 flex-shrink-0 text-gray-400" />
                       <a
                         href={hospital.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                        className="hover:text-primary flex items-center gap-1"
                       >
-                        Website
+                        Visit Website
+                        <ExternalLink className="w-3 h-3" />
                       </a>
-                    </p>
+                    </div>
                   )}
                 </div>
 
-                {hospital.place_id && (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.place_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 block w-full text-center px-4 py-2 bg-blue-50 text-primary rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    Get Directions
-                  </a>
-                )}
+                <button
+                  onClick={() => getDirections(hospital)}
+                  className="w-full px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Get Directions
+                </button>
               </div>
             ))}
           </div>
-        )}
-
-        {!loading && hospitals.length === 0 && (
-          <div className="text-center text-gray-500 mt-12">
-            <p className="text-xl">🔍 Search for hospitals near you</p>
-            <p className="text-sm mt-2">Enter your location and click search to find nearby medical facilities</p>
-          </div>
-        )}
-      </main>
+        </>
+      )}
     </div>
   );
-}
+};
+
+export default Hospitals;

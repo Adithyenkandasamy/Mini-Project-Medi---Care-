@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/callback"
+    FRONTEND_URL: str = "http://localhost:5173"
     
     # AI API Key
     GEMINI_API_KEY: str
@@ -17,7 +18,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     DATABASE_URL: str = "sqlite:///./mediguide.db"  # SQLite by default, can use PostgreSQL
     UPLOAD_DIR: str = "uploads/reports"
-    FRONTEND_URL: str = "http://localhost:5173"  # Your frontend URL (bolt.new or local)
     
     # JWT Settings
     ALGORITHM: str = "HS256"

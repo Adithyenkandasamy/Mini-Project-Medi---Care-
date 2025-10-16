@@ -182,36 +182,66 @@ async def google_callback(code: str, state: str = None, db: Session = Depends(ge
         <html>
             <head>
                 <title>Redirecting...</title>
+                <meta charset="UTF-8">
                 <style>
                     body {{ 
                         display: flex; 
+                        flex-direction: column;
                         justify-content: center; 
                         align-items: center; 
                         height: 100vh; 
+                        margin: 0;
                         font-family: Arial, sans-serif;
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                         color: white;
                     }}
-                    .loader {{ font-size: 24px; }}
+                    .loader {{ 
+                        text-align: center;
+                        font-size: 24px; 
+                    }}
+                    .spinner {{
+                        border: 4px solid rgba(255,255,255,0.3);
+                        border-top: 4px solid white;
+                        border-radius: 50%;
+                        width: 40px;
+                        height: 40px;
+                        animation: spin 1s linear infinite;
+                        margin: 20px auto;
+                    }}
+                    @keyframes spin {{
+                        0% {{ transform: rotate(0deg); }}
+                        100% {{ transform: rotate(360deg); }}
+                    }}
+                    #status {{ margin-top: 10px; font-size: 14px; opacity: 0.8; }}
                 </style>
             </head>
             <body>
                 <div class="loader">
                     <p>✓ Authentication successful!</p>
-                    <p>Redirecting...</p>
+                    <div class="spinner"></div>
+                    <p id="status">Setting up your profile...</p>
                 </div>
                 <script>
-                    const data = {json.dumps(response_data)};
-                    localStorage.setItem('access_token', data.access_token);
-                    localStorage.setItem('user_name', data.user.name);
-                    localStorage.setItem('user_email', data.user.email);
-                    localStorage.setItem('profile_image', data.user.profile_image);
-                    localStorage.setItem('profile_completed', String(data.user.profile_completed));
-                    
-                    // Small delay to ensure localStorage is set
-                    setTimeout(() => {{
-                        window.location.href = '{frontend_url}';
-                    }}, 500);
+                    try {{
+                        const data = {json.dumps(response_data)};
+                        
+                        // Store all data in localStorage
+                        localStorage.setItem('access_token', data.access_token);
+                        localStorage.setItem('user_name', data.user.name);
+                        localStorage.setItem('user_email', data.user.email);
+                        localStorage.setItem('profile_image', data.user.profile_image);
+                        localStorage.setItem('profile_completed', String(data.user.profile_completed));
+                        
+                        document.getElementById('status').textContent = 'Redirecting to MediGuide...';
+                        
+                        // Redirect after ensuring localStorage is set
+                        setTimeout(() => {{
+                            window.location.replace('{frontend_url}');
+                        }}, 1000);
+                    }} catch (error) {{
+                        document.getElementById('status').textContent = 'Error: ' + error.message;
+                        console.error('Auth error:', error);
+                    }}
                 </script>
             </body>
         </html>

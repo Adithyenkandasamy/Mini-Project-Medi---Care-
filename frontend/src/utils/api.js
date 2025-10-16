@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Add token to requests
+// Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
@@ -37,8 +37,8 @@ export const authAPI = {
 };
 
 export const profileAPI = {
-  getProfile: () => api.get('/api/profile'),
   setupProfile: (data) => api.post('/api/setup-profile', data),
+  getProfile: () => api.get('/api/profile'),
 };
 
 export const chatAPI = {
@@ -47,7 +47,7 @@ export const chatAPI = {
 };
 
 export const hospitalAPI = {
-  findNearby: (location, radius = 5000) =>
+  findNearby: (location, radius = 5000) => 
     api.post('/api/nearby-hospitals', { location, radius }),
 };
 
@@ -59,7 +59,7 @@ export const reportAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-  getAll: () => api.get('/api/reports'),
+  getReports: () => api.get('/api/reports'),
 };
 
 export default api;
