@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -7,6 +8,7 @@ import os
 import shutil
 from datetime import datetime
 from google_auth_oauthlib.flow import Flow
+import json
 
 from database import get_db, init_db, User, Chat, Report
 from auth import create_access_token, get_current_user, verify_google_token
@@ -98,7 +100,8 @@ async def google_login():
         include_granted_scopes='true'
     )
     
-    return {"authorization_url": authorization_url, "state": state}
+    # Redirect directly to Google OAuth
+    return RedirectResponse(url=authorization_url)
 
 @app.get("/auth/callback")
 async def google_callback(code: str, db: Session = Depends(get_db)):
@@ -147,7 +150,8 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         # Create access token
         access_token = create_access_token({"user_id": user.id})
         
-        return {
+        # Create response data
+        response_data = {
             "access_token": access_token,
             "token_type": "bearer",
             "user": {
@@ -158,6 +162,34 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
                 "profile_completed": user.profile_completed
             }
         }
+        
+        # Return HTML that stores data and redirects to frontend
+        frontend_path = "/dashboard" if user.profile_completed else "/profile-setup"
+        frontend_url = f"{settings.FRONTEND_URL}{frontend_path}"
+        
+        html_content = f"""
+        <html>
+            <head>
+                <title>Redirecting...</title>
+            </head>
+            <body>
+                <script>
+                    const data = {json.dumps(response_data)};
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_email', data.user.email);
+                    localStorage.setItem('profile_image', data.user.profile_image);
+                    localStorage.setItem('profile_completed', data.user.profile_completed);
+                    
+                    // Redirect to frontend
+                    window.location.href = '{frontend_url}';
+                </script>
+                <p>Redirecting to {frontend_url}...</p>
+            </body>
+        </html>
+        """
+        
+        return HTMLResponse(content=html_content)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
 

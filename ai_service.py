@@ -5,17 +5,9 @@ settings = get_settings()
 
 class AIService:
     def __init__(self):
-        self.gemini_available = bool(settings.GEMINI_API_KEY)
-        self.openai_available = bool(settings.OPENAI_API_KEY)
-        
-        if self.gemini_available:
-            import google.generativeai as genai
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.gemini_model = genai.GenerativeModel('gemini-pro')
-        
-        if self.openai_available:
-            from openai import OpenAI
-            self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
     
     def evaluate_seriousness(self, symptoms: str) -> float:
         """Evaluate the seriousness of symptoms and return a percentage score"""
@@ -35,18 +27,8 @@ class AIService:
         """
         
         try:
-            if self.gemini_available:
-                response = self.gemini_model.generate_content(prompt)
-                score_text = response.text.strip()
-            elif self.openai_available:
-                response = self.openai_client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=10
-                )
-                score_text = response.choices[0].message.content.strip()
-            else:
-                return 50.0  # Default moderate score
+            response = self.gemini_model.generate_content(prompt)
+            score_text = response.text.strip()
             
             # Extract number from response
             numbers = re.findall(r'\d+\.?\d*', score_text)
@@ -86,18 +68,8 @@ class AIService:
         """
         
         try:
-            if self.gemini_available:
-                response = self.gemini_model.generate_content(prompt)
-                return response.text
-            elif self.openai_available:
-                response = self.openai_client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=500
-                )
-                return response.choices[0].message.content
-            else:
-                return "AI service not configured. Please add GEMINI_API_KEY or OPENAI_API_KEY to your .env file."
+            response = self.gemini_model.generate_content(prompt)
+            return response.text
         except Exception as e:
             print(f"Error getting medical advice: {e}")
             return f"Error generating medical advice: {str(e)}"
