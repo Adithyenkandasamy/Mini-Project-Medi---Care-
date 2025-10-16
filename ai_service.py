@@ -41,30 +41,66 @@ class AIService:
             return 50.0
     
     def get_medical_advice(self, symptoms: str, user_profile: dict = None) -> str:
-        """Get medical advice including remedies and hospital suggestions"""
+        """Get medical advice as an intelligent agent with context awareness"""
         user_context = ""
+        medical_history = ""
+        
         if user_profile:
             user_context = f"""
-            User Profile:
+            Patient Information:
             - Age: {user_profile.get('age', 'Not specified')}
             - Gender: {user_profile.get('gender', 'Not specified')}
-            - Location: {user_profile.get('location_preference', 'Not specified')}
+            - Blood Group: {user_profile.get('blood_group', 'Not specified')}
+            - Height: {user_profile.get('height', 'Not specified')} cm
+            - Weight: {user_profile.get('weight', 'Not specified')} kg
+            - Default Location: {user_profile.get('location_preference', 'Not specified')}
+            """
+            
+            if user_profile.get('allergies') or user_profile.get('chronic_conditions') or user_profile.get('current_medications'):
+                medical_history = f"""
+            Medical History:
+            - Allergies: {user_profile.get('allergies', 'None reported')}
+            - Chronic Conditions: {user_profile.get('chronic_conditions', 'None reported')}
+            - Current Medications: {user_profile.get('current_medications', 'None reported')}
             """
         
         prompt = f"""
-        You are a medical advisory AI assistant. Provide helpful medical guidance based on the symptoms described.
+        You are MediGuide AI - an intelligent medical advisory agent, not just a chatbot. Act as a knowledgeable, empathetic healthcare assistant.
         
         {user_context}
+        {medical_history}
         
-        Symptoms: {symptoms}
+        Patient Query: {symptoms}
         
-        Please provide:
-        1. Possible conditions (disclaimer: not a diagnosis)
-        2. Home remedies and self-care tips
-        3. When to seek medical attention
-        4. Type of medical specialist to consult if needed
+        As an intelligent agent, you should:
         
-        Keep the response clear, concise, and helpful. Always remind the user that this is not a substitute for professional medical advice.
+        1. **Analyze Context**: Consider the patient's medical history, age, and current conditions
+        2. **Provide Personalized Advice**: 
+           - Possible conditions (with disclaimer)
+           - Home remedies and self-care specific to their profile
+           - Warning signs to watch for
+           
+        3. **Be Proactive About Location**:
+           - If symptoms are serious, ASK: "Would you like me to find nearby hospitals? I can use your default location ({user_profile.get('location_preference', 'your saved location') if user_profile else 'your location'}) or you can provide a different location for more accurate results."
+           - Offer to use precise/current location for better recommendations
+           
+        4. **Hospital Recommendations** (when appropriate):
+           - If patient needs medical attention, proactively suggest: "Based on your symptoms, I recommend visiting a [specialist type]. Would you like me to find nearby [hospitals/clinics] in your area?"
+           - Ask for location preference: "Use default location, provide different location, or use precise current location?"
+           
+        5. **Handle Uploaded Files**:
+           - If medical reports are mentioned, acknowledge them and offer to analyze
+           - Ask clarifying questions about the reports if needed
+           
+        6. **Act as Agent, Not Bot**:
+           - Be conversational and empathetic
+           - Ask follow-up questions when needed
+           - Remember context from the conversation
+           - Take initiative to suggest next steps
+           
+        Always include medical disclaimer: "⚠️ This is AI-generated guidance, not a medical diagnosis. Consult a healthcare professional for proper evaluation."
+        
+        Respond naturally as an intelligent healthcare agent would.
         """
         
         try:

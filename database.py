@@ -41,6 +41,16 @@ class User(Base):
     location_preference = Column(String)
     profile_completed = Column(Boolean, default=False)
     
+    # Medical information
+    blood_group = Column(String)
+    height = Column(Float)  # in cm
+    weight = Column(Float)  # in kg
+    allergies = Column(Text)
+    chronic_conditions = Column(Text)
+    current_medications = Column(Text)
+    emergency_contact = Column(String)
+    emergency_contact_phone = Column(String)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

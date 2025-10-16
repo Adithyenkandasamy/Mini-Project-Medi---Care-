@@ -53,6 +53,14 @@ class ProfileSetup(BaseModel):
     gender: str
     phone: str
     location_preference: str
+    blood_group: Optional[str] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    allergies: Optional[str] = None
+    chronic_conditions: Optional[str] = None
+    current_medications: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
 
 class ChatRequest(BaseModel):
     message: str
@@ -93,18 +101,20 @@ async def google_login():
             "https://www.googleapis.com/auth/userinfo.profile"
         ]
     )
+    # Set redirect URI to frontend callback
     flow.redirect_uri = settings.GOOGLE_REDIRECT_URI
     
     authorization_url, state = flow.authorization_url(
         access_type='offline',
-        include_granted_scopes='true'
+        include_granted_scopes='true',
+        prompt='consent'
     )
     
     # Redirect directly to Google OAuth
     return RedirectResponse(url=authorization_url)
 
 @app.get("/auth/callback")
-async def google_callback(code: str, db: Session = Depends(get_db)):
+async def google_callback(code: str, state: str = None, db: Session = Depends(get_db)):
     """Handle Google OAuth2 callback - Returns JWT token"""
     try:
         flow = Flow.from_client_config(
@@ -168,23 +178,41 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         frontend_url = f"{settings.FRONTEND_URL}{frontend_path}"
         
         html_content = f"""
+        <!DOCTYPE html>
         <html>
             <head>
                 <title>Redirecting...</title>
+                <style>
+                    body {{ 
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        height: 100vh; 
+                        font-family: Arial, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                    }}
+                    .loader {{ font-size: 24px; }}
+                </style>
             </head>
             <body>
+                <div class="loader">
+                    <p>✓ Authentication successful!</p>
+                    <p>Redirecting...</p>
+                </div>
                 <script>
                     const data = {json.dumps(response_data)};
                     localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('user_name', data.user.name);
                     localStorage.setItem('user_email', data.user.email);
                     localStorage.setItem('profile_image', data.user.profile_image);
-                    localStorage.setItem('profile_completed', data.user.profile_completed);
+                    localStorage.setItem('profile_completed', String(data.user.profile_completed));
                     
-                    // Redirect to frontend
-                    window.location.href = '{frontend_url}';
+                    // Small delay to ensure localStorage is set
+                    setTimeout(() => {{
+                        window.location.href = '{frontend_url}';
+                    }}, 500);
                 </script>
-                <p>Redirecting to {frontend_url}...</p>
             </body>
         </html>
         """
@@ -205,6 +233,14 @@ async def setup_profile(
     current_user.gender = profile.gender
     current_user.phone = profile.phone
     current_user.location_preference = profile.location_preference
+    current_user.blood_group = profile.blood_group
+    current_user.height = profile.height
+    current_user.weight = profile.weight
+    current_user.allergies = profile.allergies
+    current_user.chronic_conditions = profile.chronic_conditions
+    current_user.current_medications = profile.current_medications
+    current_user.emergency_contact = profile.emergency_contact
+    current_user.emergency_contact_phone = profile.emergency_contact_phone
     current_user.profile_completed = True
     
     db.commit()
@@ -241,39 +277,52 @@ async def get_profile(current_user: User = Depends(get_current_user)):
 # Chatbot Route
 @app.post("/api/chat")
 async def chat(
-    chat_request: ChatRequest,
+    message: ChatRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Chat with AI for medical advice and get seriousness score"""
-    # Get user profile for context
+    """Send a message and get AI medical advice with intelligent agent capabilities"""
+    # Get comprehensive user profile for context
     user_profile = {
         "age": current_user.age,
         "gender": current_user.gender,
-        "location_preference": current_user.location_preference
+        "location_preference": current_user.location_preference,
+        "blood_group": getattr(current_user, 'blood_group', None),
+        "height": getattr(current_user, 'height', None),
+        "weight": getattr(current_user, 'weight', None),
+        "allergies": getattr(current_user, 'allergies', None),
+        "chronic_conditions": getattr(current_user, 'chronic_conditions', None),
+        "current_medications": getattr(current_user, 'current_medications', None),
     }
     
     # Evaluate seriousness
-    seriousness_score = ai_service.evaluate_seriousness(chat_request.message)
+    seriousness_score = ai_service.evaluate_seriousness(message.message)
     
-    # Get medical advice
-    response_text = ai_service.get_medical_advice(chat_request.message, user_profile)
+    # Get intelligent medical advice (agent-based)
+    response_text = ai_service.get_medical_advice(message.message, user_profile)
     
-    # Save chat to database
-    chat_entry = Chat(
+    # Check if AI suggests hospital visit and auto-trigger hospital search
+    if any(keyword in response_text.lower() for keyword in ['hospital', 'clinic', 'emergency', 'visit', 'consult']):
+        # AI will ask user about location preference in the response
+        pass
+    
+    # Save to database
+    chat = Chat(
         user_id=current_user.id,
-        message=chat_request.message,
+        message=message.message,
         response=response_text,
         seriousness_score=seriousness_score
     )
-    db.add(chat_entry)
+    db.add(chat)
     db.commit()
+    db.refresh(chat)
     
     return {
-        "message": chat_request.message,
-        "response": response_text,
-        "seriousness_score": seriousness_score,
-        "timestamp": chat_entry.timestamp.isoformat()
+        "id": chat.id,
+        "message": chat.message,
+        "response": chat.response,
+        "seriousness_score": chat.seriousness_score,
+        "timestamp": chat.timestamp
     }
 
 # Get chat history
