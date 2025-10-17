@@ -162,7 +162,7 @@ function App() {
             chatHistory={chatHistory}
             onSendMessage={sendMessage}
           />
-          <Sidebar hospitals={hospitals} />
+          <Sidebar hospitals={hospitals} onHospitalsUpdate={setHospitals} />
         </div>
       </main>
     </div>

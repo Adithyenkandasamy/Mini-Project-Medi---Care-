@@ -1,32 +1,42 @@
 .app {
   min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   display: flex;
   flex-direction: column;
 }
 
 .main-content {
+  padding: 1.5rem;
+  min-height: calc(100vh - 80px);
   flex: 1;
-  padding: 2rem;
 }
 
 .chat-layout {
   display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 2rem;
-  height: calc(100vh - 120px);
-  max-width: 1400px;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  max-width: 1200px;
   margin: 0 auto;
+  height: calc(100vh - 140px);
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
-  .main-content {
-    padding: 1rem;
+@media (max-width: 1024px) {
+  .chat-layout {
+    grid-template-columns: 1fr 280px;
+    gap: 1rem;
   }
-  
+}
+
+@media (max-width: 768px) {
   .chat-layout {
     grid-template-columns: 1fr;
-    height: auto;
     gap: 1rem;
+    height: auto;
+  }
+  
+  .main-content {
+    padding: 1rem;
   }
 }
