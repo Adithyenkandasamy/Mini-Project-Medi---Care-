@@ -7,24 +7,49 @@
 }
 
 .sidebar-section {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 
+    0 25px 50px rgba(102, 126, 234, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex: 1;
+  min-height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(102, 126, 234, 0.2), 
+    transparent
+  );
 }
 
 .sidebar-section h3 {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  color: #2d3748;
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  color: #1a202c;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .quick-actions {
@@ -36,25 +61,51 @@
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
   border: none;
-  border-radius: 15px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
-  color: #4a5568;
+  border-radius: 18px;
+  background: linear-gradient(135deg, 
+    rgba(102, 126, 234, 0.06), 
+    rgba(118, 75, 162, 0.06),
+    rgba(255, 255, 255, 0.4)
+  );
+  color: #2d3748;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
-  font-size: 0.95rem;
-  font-weight: 500;
-  border: 1px solid rgba(102, 126, 234, 0.1);
+  font-size: 1rem;
+  font-weight: 600;
+  border: 1px solid rgba(102, 126, 234, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.2), 
+    transparent
+  );
+  transition: left 0.5s ease;
 }
 
 .action-btn:hover {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+.action-btn:hover::before {
+  left: 100%;
 }
 
 .hospital-list {
@@ -64,20 +115,45 @@
 }
 
 .hospital-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(102, 126, 234, 0.15);
-  border-radius: 16px;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.95), 
+    rgba(248, 250, 252, 0.9)
+  );
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 20px;
+  padding: 2rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 
+    0 8px 25px rgba(102, 126, 234, 0.08),
+    0 4px 15px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.hospital-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
 }
 
 .hospital-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 35px rgba(102, 126, 234, 0.2);
-  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.25);
+  border-color: rgba(102, 126, 234, 0.4);
+}
+
+.hospital-card:hover::before {
+  transform: scaleX(1);
 }
 
 .hospital-header {
