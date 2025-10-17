@@ -10,6 +10,9 @@
   padding: 1.5rem;
   min-height: calc(100vh - 80px);
   flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .chat-layout {
