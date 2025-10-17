@@ -44,10 +44,17 @@ class AddressRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    user_location: Optional[dict] = None
+    user_location: Optional[Dict[str, float]] = None
+    user_id: Optional[str] = "user123"  # Default user ID
 
 class ChatMessage(BaseModel):
+    id: str
+    user_id: str
     message: str
+    response: str
+    severity_score: int
+    timestamp: str
+    hospitals: List[Dict] = []
 
 class ChatResponse(BaseModel):
     id: str
@@ -98,36 +105,59 @@ def analyze_symptoms_with_gemini(symptoms: str, user_location: dict = None):
         else:
             location_context = "Ask the patient for their location to provide nearby hospital recommendations."
         
+        # Check if user is asking about hospitals in a specific location
+        symptoms_lower = symptoms.lower()
+        if any(word in symptoms_lower for word in ['hospital', 'hospitals']) and any(city in symptoms_lower for city in ['coimbatore', 'chennai', 'bangalore', 'mumbai', 'delhi']):
+            # Extract city name
+            city = None
+            for c in ['coimbatore', 'chennai', 'bangalore', 'mumbai', 'delhi']:
+                if c in symptoms_lower:
+                    city = c.title()
+                    break
+            
+            # Return specific hospital recommendations for the city
+            if city == 'Coimbatore':
+                return {
+                    'response': f"""Top hospitals in {city}:
+
+1. **Kovai Medical Center (KMCH)**
+   📍 Avinashi Road, Coimbatore
+   📞 0422-4324324
+   ⭐ Multi-specialty hospital with 24/7 emergency
+
+2. **PSG Hospitals**
+   📍 Peelamedu, Coimbatore  
+   📞 0422-2570170
+   ⭐ Teaching hospital with all departments
+
+3. **Ganga Hospital**
+   📍 313, Mettupalayam Road, Coimbatore
+   📞 0422-2485000
+   ⭐ Specialized in orthopedics and trauma
+
+4. **Sri Ramakrishna Hospital**
+   📍 395, Sidhapudur, Coimbatore
+   📞 0422-2320100
+   ⭐ Multi-specialty with advanced facilities
+
+Note: This is AI guidance. Consult a healthcare provider.""",
+                    'severity_score': 30,
+                    'hospitals': [],
+                    'timestamp': datetime.now().strftime("%I:%M %p")
+                }
+        
         prompt = f"""
-        You are Dr. MediCare AI, a compassionate and experienced virtual doctor. A patient has told you: "{symptoms}"
+        You are Dr. MediCare AI. A patient said: "{symptoms}"
         
-        Respond exactly like a caring doctor would in person:
+        Keep responses SHORT (2-3 sentences max):
         
-        1. If they describe symptoms:
-           - Ask relevant follow-up questions about duration, severity, triggers
-           - Provide practical advice and reassurance
-           - Suggest when to seek care if needed
-           - Be specific about what to watch for
-        
-        2. If they mention pain/discomfort:
-           - Ask about pain scale (1-10), location, type of pain
-           - Suggest immediate relief measures
-           - Explain possible causes in simple terms
-        
-        3. If they ask about hospitals:
-           - Ask: "What's your location? I can recommend good hospitals nearby."
-        
-        4. Always be:
-           - Warm and reassuring, not robotic
-           - Specific with medical advice
-           - Clear about when to seek immediate care
-           - Natural in conversation flow
+        1. If symptoms: Brief advice + 1 question
+        2. If hospitals: Ask for specific location
+        3. Be direct and helpful
         
         {location_context}
         
-        End with: "Please note: This is AI medical guidance. For proper diagnosis, consult a healthcare provider."
-        
-        Be conversational, caring, and helpful - like talking to a trusted family doctor.
+        End with: "Note: This is AI guidance. Consult a healthcare provider."
         """
         
         response = model.generate_content(prompt)
@@ -164,32 +194,20 @@ def analyze_symptoms_with_gemini(symptoms: str, user_location: dict = None):
                 user_location['longitude']
             )
             
-            # Add hospital recommendations naturally to conversation
+            # Add hospital recommendations when location is provided
             if hospitals:
-                hospital_text = "\n\nBased on your location, here are some good hospitals nearby:\n\n"
-                for i, hospital in enumerate(hospitals, 1):
-                    hospital_text += f"{i}. {hospital['name']} - {hospital['distance']:.1f}km away\n"
-                    hospital_text += f"   Located at {hospital['address']}\n"
-                    hospital_text += f"   Rating: {hospital['rating']}/5 ⭐\n"
-                    
-                    # Add natural department recommendation
-                    if severity_score >= 80:
-                        hospital_text += f"   I'd recommend going to their Emergency Department right away.\n"
-                    elif severity_score >= 60:
-                        hospital_text += f"   You should visit their Urgent Care or Emergency Department.\n"
-                    elif severity_score >= 40:
-                        hospital_text += f"   Their General Medicine department would be perfect for you.\n"
-                    else:
-                        hospital_text += f"   You can schedule a regular appointment when convenient.\n"
-                    
-                    hospital_text += "\n"
+                hospital_text = "\n\nNearby hospitals:\n"
+                for i, hospital in enumerate(hospitals[:3], 1):  # Limit to 3 hospitals
+                    hospital_text += f"{i}. {hospital['name']} ({hospital['distance']:.1f}km)\n"
+                    hospital_text += f"   {hospital['address']}\n"
                 
                 ai_response += hospital_text
         
         return {
             'response': ai_response,
             'severity_score': severity_score,
-            'hospitals': hospitals
+            'hospitals': hospitals,
+            'timestamp': datetime.now().strftime("%I:%M %p")
         }
         
     except Exception as e:
@@ -201,13 +219,17 @@ If you'd like me to recommend hospitals in your area, just let me know your loca
 
 Please note: This is AI-generated medical guidance for informational purposes only. Always consult a licensed healthcare provider for proper medical evaluation.""",
             'severity_score': 30,
-            'hospitals': []
+            'hospitals': [],
+            'timestamp': datetime.now().strftime("%I:%M %p")
         }
 
 class User(BaseModel):
     id: str
     name: str
     email: str
+
+# In-memory chat storage (replace with database in production)
+chat_storage = {}
 
 # Hardcoded data for testing
 HARDCODED_RESPONSES = {
@@ -278,65 +300,41 @@ async def root():
 async def get_user():
     return current_user
 
-@app.get("/api/chat/history")
-async def get_chat_history():
-    return {"history": chat_history}
+@app.get("/api/chat/history/{user_id}")
+async def get_chat_history(user_id: str):
+    """Get chat history for a specific user"""
+    user_chats = chat_storage.get(user_id, [])
+    return {"history": user_chats}
 
-@app.post("/api/chat/send", response_model=ChatResponse)
-async def send_message(request: ChatRequest):
+@app.post("/api/chat/send")
+async def send_chat_message(request: ChatRequest):
+    """Send a chat message and get AI response"""
     try:
-        # Generate unique ID for this chat
-        chat_id = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        # Get AI response using Gemini
+        ai_result = analyze_symptoms_with_gemini(request.message, request.user_location)
         
-        # Analyze symptoms with Gemini AI
-        analysis = analyze_symptoms_with_gemini(request.message, request.user_location)
+        # Create chat response with proper timestamp
+        current_time = datetime.now()
+        chat_response = {
+            "id": f"chat_{current_time.strftime('%Y%m%d_%H%M%S')}",
+            "user_id": request.user_id,
+            "message": request.message,
+            "response": ai_result['response'],
+            "severity_score": ai_result['severity_score'],
+            "timestamp": current_time.isoformat(),
+            "hospitals": ai_result.get('hospitals', [])
+        }
         
-        # Create response
-        chat_response = ChatResponse(
-            id=chat_id,
-            message=request.message,
-            response=analysis['response'],
-            severity_score=analysis['severity_score'],
-            timestamp=datetime.now().strftime('%I:%M:%S %p'),
-            hospitals=analysis['hospitals']
-        )
-        
-        # Add to history
-        chat_history.append(chat_response.dict())
+        # Store chat in memory (persistent across sessions)
+        user_id = request.user_id
+        if user_id not in chat_storage:
+            chat_storage[user_id] = []
+        chat_storage[user_id].append(chat_response)
         
         return chat_response
         
     except Exception as e:
-        # Fallback response
-        chat_response = ChatResponse(
-            id=f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            message=request.message,
-            response="""Thank you for sharing your symptoms with Medi Care. I'd like to help you better:
-
-🔍 **To provide better guidance, please tell me**:
-• What specific symptoms are you experiencing?
-• How long have you had these symptoms?
-• Any pain level (1-10 scale)?
-• Any other accompanying symptoms?
-
-💡 **General Health Tips**:
-- Monitor your symptoms closely
-- Stay hydrated and get adequate rest
-- Maintain a healthy diet
-- Avoid strenuous activities if feeling unwell
-
-🏥 **When to seek care**:
-- If symptoms worsen or persist
-- If you develop new concerning symptoms
-- If you have any doubts about your condition
-
-⚠️ **Disclaimer**: This is AI-generated guidance, not a medical diagnosis. Please consult a healthcare professional for proper evaluation.""",
-            severity_score=30,
-            timestamp=datetime.now().strftime('%I:%M:%S %p'),
-            hospitals=[]
-        )
-        
-        chat_history.append(chat_response.dict())
+        raise HTTPException(status_code=500, detail=f"Error processing chat message: {str(e)}")
         return chat_response
 
 @app.get("/api/hospitals")
