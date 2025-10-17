@@ -10,6 +10,7 @@ import requests
 from datetime import datetime, timedelta
 import googlemaps
 from dotenv import load_dotenv
+from ai_service import ai_service
 
 # Load environment variables
 load_dotenv()
@@ -101,105 +102,46 @@ class Reminder(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Symptom Analysis Functions
+# AI Service Helper Functions
 def extract_symptoms(text):
-    """Extract symptoms from user input using regex patterns"""
-    symptoms = []
-    
-    # Common symptom patterns
-    symptom_patterns = {
-        'fever': r'\b(fever|temperature|hot|burning up)\b',
-        'headache': r'\b(headache|head pain|migraine)\b',
-        'cough': r'\b(cough|coughing)\b',
-        'sore_throat': r'\b(sore throat|throat pain)\b',
-        'nausea': r'\b(nausea|nauseous|sick|vomit)\b',
-        'dizziness': r'\b(dizzy|dizziness|lightheaded)\b',
-        'chest_pain': r'\b(chest pain|chest hurt)\b',
-        'shortness_of_breath': r'\b(shortness of breath|can\'t breathe|breathing problem)\b',
-        'fatigue': r'\b(tired|fatigue|exhausted|weak)\b',
-        'stomach_pain': r'\b(stomach pain|stomach ache|abdominal pain)\b',
-        'back_pain': r'\b(back pain|backache)\b',
-        'joint_pain': r'\b(joint pain|arthritis|stiff)\b',
-        'rash': r'\b(rash|skin irritation|itchy)\b',
-        'swelling': r'\b(swelling|swollen|bloated)\b'
-    }
-    
-    text_lower = text.lower()
-    for symptom, pattern in symptom_patterns.items():
-        if re.search(pattern, text_lower):
-            symptoms.append(symptom)
-    
-    return symptoms
+    """Extract symptoms from user input - simplified for now"""
+    return [text]  # Return the full text as symptom for AI processing
 
 def calculate_severity_score(symptoms, text):
-    """Calculate severity score based on symptoms and context"""
-    base_score = 0
-    
-    # Severity weights for different symptoms
-    severity_weights = {
-        'chest_pain': 30,
-        'shortness_of_breath': 25,
-        'severe_headache': 20,
-        'high_fever': 15,
-        'nausea': 10,
-        'dizziness': 15,
-        'stomach_pain': 10,
-        'back_pain': 8,
-        'joint_pain': 5,
-        'rash': 5,
-        'fatigue': 5,
-        'cough': 8,
-        'sore_throat': 5,
-        'swelling': 12
-    }
-    
-    # Calculate base score from symptoms
-    for symptom in symptoms:
-        base_score += severity_weights.get(symptom, 5)
-    
-    # Context-based modifiers
-    text_lower = text.lower()
-    
-    # Emergency keywords
-    emergency_keywords = ['emergency', 'urgent', 'severe', 'intense', 'unbearable', 'can\'t breathe', 'chest pain']
-    for keyword in emergency_keywords:
-        if keyword in text_lower:
-            base_score += 20
-    
-    # Duration modifiers
-    if any(word in text_lower for word in ['days', 'weeks', 'chronic']):
-        base_score += 10
-    
-    # Intensity modifiers
-    if any(word in text_lower for word in ['very', 'extremely', 'really', 'badly']):
-        base_score += 15
-    
-    return min(base_score, 100)  # Cap at 100
+    """Calculate severity score using AI service"""
+    try:
+        return int(ai_service.evaluate_seriousness(text))
+    except Exception as e:
+        print(f"Error calculating severity: {e}")
+        return 30  # Default moderate score
 
-def get_medical_advice(symptoms, severity_score, user_profile=None):
-    """Generate medical advice based on symptoms and severity"""
-    
-    if severity_score >= 70:
-        advice = "⚠️ **URGENT**: Your symptoms suggest you need immediate medical attention. Please visit the nearest emergency room or call emergency services right away."
-        action = "emergency"
-    elif severity_score >= 40:
-        advice = "🏥 **Doctor Consultation Recommended**: Your symptoms warrant a visit to a healthcare professional. Please schedule an appointment with a doctor soon."
-        action = "doctor_visit"
-    else:
-        advice = "🏠 **Home Care**: Your symptoms appear mild. Try rest, hydration, and over-the-counter remedies. Monitor your condition and seek medical help if symptoms worsen."
-        action = "home_remedy"
-    
-    # Add specific advice based on symptoms
-    if 'fever' in symptoms:
-        advice += "\n\n🌡️ **Fever Care**: Stay hydrated, rest, and consider fever-reducing medication if temperature is high."
-    
-    if 'headache' in symptoms:
-        advice += "\n\n🧠 **Headache Relief**: Try rest in a dark room, stay hydrated, and consider pain relievers if needed."
-    
-    if 'cough' in symptoms:
-        advice += "\n\n😷 **Cough Care**: Stay hydrated, use throat lozenges, and avoid irritants. See a doctor if persistent."
-    
-    return advice, action
+def get_medical_advice(symptoms, severity_score, user):
+    """Get medical advice using AI service"""
+    try:
+        # Prepare user profile for AI
+        user_profile = {
+            'age': user.age,
+            'gender': user.gender,
+            'location_preference': user.location,
+            'allergies': None,  # These would come from profile if implemented
+            'chronic_conditions': None,
+            'current_medications': None
+        }
+        
+        advice = ai_service.get_medical_advice(' '.join(symptoms), user_profile)
+        
+        # Determine recommended action based on severity
+        if severity_score >= 70:
+            recommended_action = 'emergency'
+        elif severity_score >= 40:
+            recommended_action = 'doctor_visit'
+        else:
+            recommended_action = 'home_remedy'
+            
+        return advice, recommended_action
+    except Exception as e:
+        print(f"Error getting medical advice: {e}")
+        return "I'm having trouble processing your request right now. Please try again later.", 'home_remedy'
 
 def get_hospital_specialization(symptoms):
     """Map symptoms to medical specializations"""
