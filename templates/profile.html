@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - MediGuide AI{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="profile-info">
+                <h2>{{ current_user.name }}</h2>
+                <p>{{ current_user.email }}</p>
+                <span class="member-since">Member since {{ current_user.created_at.strftime('%B %Y') }}</span>
+            </div>
+        </div>
+        
+        <div class="profile-content">
+            <div class="profile-section">
+                <h3>Personal Information</h3>
+                <form id="profileForm" class="profile-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" value="{{ current_user.name or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" value="{{ current_user.email }}" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="age">Age</label>
+                            <input type="number" id="age" name="age" value="{{ current_user.age or '' }}" min="1" max="120">
+                        </div>
+                        <div class="form-group">
+                            <label for="gender">Gender</label>
+                            <select id="gender" name="gender">
+                                <option value="">Select Gender</option>
+                                <option value="male" {% if current_user.gender == 'male' %}selected{% endif %}>Male</option>
+                                <option value="female" {% if current_user.gender == 'female' %}selected{% endif %}>Female</option>
+                                <option value="other" {% if current_user.gender == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" name="phone" value="{{ current_user.phone or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="insurance">Insurance Provider</label>
+                            <input type="text" id="insurance" name="insurance" value="{{ current_user.insurance or '' }}" placeholder="e.g., Blue Cross, Aetna">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" name="location" value="{{ current_user.location or '' }}" placeholder="City, State or Address">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Update Profile
+                    </button>
+                </form>
+            </div>
+            
+            <div class="profile-section">
+                <h3>Health Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>{{ current_user.messages|length }}</h4>
+                            <p>Chat Messages</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-stethoscope"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>{{ current_user.consultations|length }}</h4>
+                            <p>Consultations</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-medical"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>{{ current_user.documents|length }}</h4>
+                            <p>Documents</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="profile-section">
+                <h3>Recent Documents</h3>
+                <div class="documents-list">
+                    {% if current_user.documents %}
+                        {% for doc in current_user.documents[-5:] %}
+                        <div class="document-item">
+                            <div class="document-icon">
+                                <i class="fas fa-file-{% if doc.file_type == 'application/pdf' %}pdf{% else %}image{% endif %}"></i>
+                            </div>
+                            <div class="document-info">
+                                <h5>{{ doc.original_filename }}</h5>
+                                <p>Uploaded {{ doc.upload_date.strftime('%B %d, %Y') }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="no-documents">No documents uploaded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="profileMessage" class="message" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('profileForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        name: formData.get('name'),
+        age: formData.get('age') ? parseInt(formData.get('age')) : null,
+        gender: formData.get('gender'),
+        phone: formData.get('phone'),
+        location: formData.get('location'),
+        insurance: formData.get('insurance')
+    };
+    
+    try {
+        const response = await fetch('/api/update_profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        const messageEl = document.getElementById('profileMessage');
+        
+        if (result.success) {
+            messageEl.className = 'message success';
+            messageEl.textContent = result.message;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        } else {
+            messageEl.className = 'message error';
+            messageEl.textContent = result.message || 'Failed to update profile';
+            messageEl.style.display = 'block';
+        }
+    } catch (error) {
+        const messageEl = document.getElementById('profileMessage');
+        messageEl.className = 'message error';
+        messageEl.textContent = 'An error occurred. Please try again.';
+        messageEl.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

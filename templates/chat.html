@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - MediGuide AI{% endblock %}
+
+{% block content %}
+<div class="chat-page">
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>
+                <i class="fas fa-robot"></i>
+                MediGuide AI Assistant
+            </h2>
+            <p>Describe your symptoms and get personalized medical advice</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message welcome-message">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <p>Hello {{ current_user.name }}! 👋</p>
+                    <p>I'm your AI healthcare assistant. I can help you:</p>
+                    <ul>
+                        <li>🔍 Analyze your symptoms</li>
+                        <li>🏥 Find nearby hospitals</li>
+                        <li>💊 Provide medical advice</li>
+                        <li>📊 Assess symptom severity</li>
+                    </ul>
+                    <p>How are you feeling today? Please describe any symptoms you're experiencing.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            <div class="message bot-message">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <form id="chatForm" class="chat-form">
+                <div class="input-group">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Describe your symptoms..." 
+                        rows="1"
+                        maxlength="1000"
+                    ></textarea>
+                    <button type="submit" class="send-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <div class="sidebar-section">
+            <h3>
+                <i class="fas fa-hospital"></i>
+                Quick Actions
+            </h3>
+            <div class="quick-actions">
+                <button class="action-btn" onclick="findHospitals()">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Find Hospitals
+                </button>
+                <button class="action-btn" onclick="uploadDocument()">
+                    <i class="fas fa-upload"></i>
+                    Upload Report
+                </button>
+                <button class="action-btn" onclick="viewProfile()">
+                    <i class="fas fa-user"></i>
+                    Update Profile
+                </button>
+            </div>
+        </div>
+        
+        <div class="sidebar-section" id="hospitalResults" style="display: none;">
+            <h3>
+                <i class="fas fa-hospital"></i>
+                Recommended Hospitals
+            </h3>
+            <div id="hospitalList" class="hospital-list">
+                <!-- Hospital cards will be inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Upload Modal -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Upload Medical Document</h3>
+            <span class="close" onclick="closeUploadModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="fileInput">Select File</label>
+                    <input type="file" id="fileInput" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description (Optional)</label>
+                    <textarea id="description" name="description" placeholder="Brief description of the document"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload"></i>
+                    Upload Document
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

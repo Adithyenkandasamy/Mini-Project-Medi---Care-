@@ -1,290 +1,242 @@
-# MediGuide - Medical Advisory Platform
+# 🏥 MediGuide AI - Intelligent Healthcare Assistant
 
-A full-stack web application that provides AI-powered medical advice, symptom analysis, hospital finder, and medical report management.
+## 📋 Overview
+MediGuide AI is a comprehensive healthcare assistant that combines artificial intelligence with practical healthcare tools to help users:
+- Assess symptoms with AI-powered analysis using Google Gemini
+- Find nearby hospitals and medical facilities
+- Upload and manage medical reports
+- Get personalized health recommendations
+- Track medical history and consultations
 
-## Features
+## ✨ Features
 
-- 🔐 **Google OAuth2 Authentication** - Secure login with Google account
-- 👤 **Profile Management** - Collect user information (age, gender, phone, location)
-- 🤖 **AI Medical Chatbot** - Get medical advice using Gemini or OpenAI API
-- 📊 **Seriousness Evaluation** - Automatic symptom severity scoring (0-100%)
-- 🏥 **Hospital Finder** - Find nearby hospitals with real-time open/closed status
-- 📁 **Report Upload** - Upload and manage medical reports (PDF, images, documents)
-- 📜 **Chat History** - View past conversations and severity scores
-- 💬 **Real-time Chat Interface** - Interactive medical advisory chat
+### 🤖 AI-Powered Chat Interface
+- **Intelligent Symptom Analysis**: Uses Google Gemini AI to evaluate symptoms and provide medical guidance
+- **Seriousness Scoring**: Automatically assesses symptom severity (0-100 scale)
+- **Personalized Advice**: Considers user profile, age, medical history for tailored recommendations
+- **Real-time Chat**: Interactive conversation with typing indicators and message history
 
-## Tech Stack
+### 🏥 Hospital Finder
+- **Location-Based Search**: Find nearby hospitals using current location or manual input
+- **Detailed Information**: Hospital ratings, contact info, operating hours, and websites
+- **Google Maps Integration**: Direct links to maps and directions
+- **Real-time Status**: Shows if hospitals are currently open or closed
 
-### Backend
-- **FastAPI** - Modern Python web framework
-- **SQLAlchemy** - ORM for database management
-- **SQLite** - Lightweight database
-- **Google OAuth2** - Authentication
-- **Gemini/OpenAI API** - AI-powered medical advice
-- **Google Maps API** - Hospital location services
+### 👤 User Management
+- **Google OAuth Integration**: Secure authentication with Google accounts
+- **Profile Management**: Store personal and medical information
+- **Medical History**: Track consultations and health data
+- **Privacy Focused**: Secure data handling and user privacy protection
 
-### API Features
-- **RESTful API** - Clean, well-documented endpoints
-- **OpenAPI/Swagger** - Interactive API documentation
-- **JWT Authentication** - Secure token-based auth
+### 📄 Medical Reports
+- **File Upload**: Support for PDF, JPG, PNG medical reports
+- **Drag & Drop Interface**: Easy file upload with progress indicators
+- **File Validation**: Automatic file type and size validation
+- **Report Management**: Track uploaded documents and history
 
-## Installation
+## 🛠 Tech Stack
+
+### Backend (FastAPI)
+- **FastAPI**: Modern, fast web framework for building APIs
+- **SQLAlchemy**: SQL toolkit and ORM for database operations
+- **Google Gemini AI**: Advanced AI model for medical advice
+- **Google Maps API**: Location services and hospital data
+- **JWT Authentication**: Secure token-based authentication
+- **SQLite**: Lightweight database for development
+
+### Frontend (React)
+- **React 18**: Modern React with hooks and functional components
+- **TypeScript**: Type-safe JavaScript for better development experience
+- **Tailwind CSS**: Utility-first CSS framework for styling
+- **Axios**: HTTP client for API communication
+- **Lucide React**: Beautiful icon library
+- **Responsive Design**: Mobile-first, works on all devices
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
-- Google Cloud Console account (for OAuth2 and Maps API)
-- Gemini API key or OpenAI API key
+- Python 3.8+ 
+- Node.js 16+
+- Google Cloud Platform account (for API keys)
 
-### Step 1: Clone the Repository
+### 1. Backend Setup
 ```bash
+# Clone and navigate to project
 git clone <repository-url>
 cd Mini-Project-Medi---Care-
-```
 
-### Step 2: Create Virtual Environment
-```bash
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate  # Linux/Mac
+# or
+venv\Scripts\activate     # Windows
 
-### Step 3: Install Dependencies
-
-**Using uv (Recommended):**
-```bash
-uv sync
-```
-
-**Or using pip:**
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### Step 4: Configure Environment Variables
-1. Copy `.env.example` to `.env`:
-```bash
+# Setup environment variables
 cp .env.example .env
+# Edit .env with your API keys (see Environment Variables section)
+
+# Start FastAPI server
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-2. Edit `.env` and add your API keys:
+### 2. Frontend Setup
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start React development server
+npm start
+```
+
+### 3. Access the Application
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+## 🔧 Configuration
+
+### Environment Variables
+Create a `.env` file in the root directory:
+
 ```env
-# Google OAuth2 Configuration
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
+# Security
+SECRET_KEY=your_super_secret_key_here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# AI API Keys (Choose one or both)
-GEMINI_API_KEY=your_gemini_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Google Maps API
-GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
-
-# Application Settings
-SECRET_KEY=your_secret_key_for_jwt_here
+# Database
 DATABASE_URL=sqlite:///./mediguide.db
-UPLOAD_DIR=uploads/reports
+
+# Google APIs
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# AI Services
+GEMINI_API_KEY=your_google_gemini_api_key
 ```
 
-### Step 5: Set Up Google OAuth2
+### Getting API Keys
 
+#### Google Gemini AI
+1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create a new API key
+3. Add it as `GEMINI_API_KEY` in your `.env` file
+
+#### Google Maps API
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable Google+ API
-4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client ID"
-5. Configure OAuth consent screen
-6. Add authorized redirect URI: `http://localhost:8000/auth/callback`
-7. Copy Client ID and Client Secret to `.env`
+2. Enable Maps JavaScript API and Places API
+3. Create credentials and add as `GOOGLE_MAPS_API_KEY`
 
-### Step 6: Get API Keys
-
-**For Gemini API:**
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create an API key
-3. Add to `.env` as `GEMINI_API_KEY`
-
-**For OpenAI API:**
-1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Create an API key
-3. Add to `.env` as `OPENAI_API_KEY`
-
-**For Google Maps API:**
+#### Google OAuth
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Enable "Places API" and "Geocoding API"
-3. Create API key in Credentials
-4. Add to `.env` as `GOOGLE_MAPS_API_KEY`
+2. Create OAuth 2.0 credentials
+3. Add authorized origins: `http://localhost:3000`
+4. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
 
-### Step 7: Generate Secret Key
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-Copy the output to `SECRET_KEY` in `.env`
+## 📚 API Documentation
 
-## Running the Application
+### Authentication Endpoints
+- `POST /auth/google` - Authenticate with Google OAuth token
+- `GET /profile` - Get current user profile
+- `PUT /profile` - Update user profile
 
-### Using uv (Recommended)
-```bash
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+### Chat Endpoints
+- `POST /chat` - Send message to AI assistant
+  ```json
+  {
+    "message": "I have a headache and fever",
+    "user_profile": {...}
+  }
+  ```
 
-### Using Python directly
-```bash
-python main.py
-```
+### Hospital Endpoints
+- `POST /hospitals/nearby` - Find nearby hospitals
+  ```json
+  {
+    "location": "New York, NY",
+    "radius": 5000
+  }
+  ```
 
-### Using uvicorn
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+### File Upload Endpoints
+- `POST /upload-report` - Upload medical report (multipart/form-data)
 
-The API will be available at:
-- **API Root**: `http://localhost:8000`
-- **API Documentation (Swagger)**: `http://localhost:8000/docs`
-- **API Documentation (ReDoc)**: `http://localhost:8000/redoc`
-
-## Project Structure
+## 🏗 Project Structure
 
 ```
 Mini-Project-Medi---Care-/
-├── main.py                 # FastAPI application and routes
-├── config.py              # Configuration and settings
+├── main.py                 # FastAPI application entry point
+├── config.py              # Configuration settings
 ├── database.py            # Database models and setup
 ├── auth.py                # Authentication logic
-├── ai_service.py          # AI integration (Gemini/OpenAI)
-├── maps_service.py        # Google Maps integration
+├── ai_service.py          # AI service integration
+├── maps_service.py        # Maps service integration
 ├── requirements.txt       # Python dependencies
-├── pyproject.toml         # Project configuration for uv
 ├── .env.example          # Environment variables template
-├── .gitignore            # Git ignore rules
-├── README.md             # This file
-└── uploads/              # Uploaded medical reports
-    └── reports/
+├── frontend/             # React frontend application
+│   ├── src/
+│   │   ├── components/   # React components
+│   │   ├── context/      # React context providers
+│   │   ├── services/     # API service functions
+│   │   └── App.tsx       # Main application component
+│   ├── public/           # Static assets
+│   └── package.json      # Node.js dependencies
+└── README.md             # This file
 ```
 
-## Database Schema
+## 🔒 Security Features
+- **JWT Authentication**: Secure token-based authentication
+- **Google OAuth**: Industry-standard OAuth 2.0 integration
+- **Input Validation**: Comprehensive input validation and sanitization
+- **CORS Protection**: Proper CORS configuration for web security
+- **File Upload Security**: File type and size validation
+- **Environment Variables**: Sensitive data stored securely
 
-### Users Table
-- `id` - Primary key
-- `email` - User email (unique)
-- `name` - User full name
-- `profile_image` - Profile picture URL
-- `google_id` - Google account ID
-- `age` - User age
-- `gender` - User gender
-- `phone` - Phone number
-- `location_preference` - Preferred location
-- `profile_completed` - Profile completion status
-- `created_at` - Account creation timestamp
-- `updated_at` - Last update timestamp
+## 🚀 Deployment
 
-### Chats Table
-- `id` - Primary key
-- `user_id` - Foreign key to users
-- `message` - User's message
-- `response` - AI response
-- `seriousness_score` - Symptom severity score (0-100)
-- `timestamp` - Chat timestamp
+### Production Deployment
+1. **Backend**: Deploy FastAPI using Docker, Heroku, or cloud providers
+2. **Frontend**: Build and deploy React app using Netlify, Vercel, or similar
+3. **Database**: Use PostgreSQL or cloud database for production
+4. **Environment**: Update environment variables for production
 
-### Reports Table
-- `id` - Primary key
-- `user_id` - Foreign key to users
-- `filename` - Original filename
-- `filepath` - Stored file path
-- `file_size` - File size in bytes
-- `uploaded_at` - Upload timestamp
-
-## API Endpoints
-
-### Authentication
-- `GET /auth/google` - Initiate Google OAuth2 login
-- `GET /auth/callback` - OAuth2 callback handler
-
-### Profile
-- `POST /api/setup-profile` - Complete user profile
-- `GET /api/profile` - Get current user profile
-
-### Chat
-- `POST /api/chat` - Send message and get AI response
-- `GET /api/chat/history` - Get chat history
-
-### Reports
-- `POST /api/upload-report` - Upload medical report
-- `GET /api/reports` - Get user's uploaded reports
-
-### Hospitals
-- `POST /api/nearby-hospitals` - Find nearby hospitals
-
-### Health
-- `GET /api/health` - Health check endpoint
-
-## API Usage Guide
-
-### Authentication Flow
-1. **GET /auth/google** - Get Google OAuth2 authorization URL
-2. **GET /auth/callback?code=...** - Exchange code for JWT token
-3. Use the JWT token in `Authorization: Bearer <token>` header for all subsequent requests
-
-### Example API Calls
-
-**1. Setup Profile:**
-```bash
-curl -X POST http://localhost:8000/api/setup-profile \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"age": 30, "gender": "Male", "phone": "+1234567890", "location_preference": "New York, NY"}'
+### Docker Deployment (Optional)
+```dockerfile
+# Backend Dockerfile
+FROM python:3.9
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-**2. Chat with AI:**
-```bash
-curl -X POST http://localhost:8000/api/chat \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "I have a headache and fever"}'
-```
+## 🤝 Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-**3. Find Nearby Hospitals:**
-```bash
-curl -X POST http://localhost:8000/api/nearby-hospitals \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"location": "New York, NY", "radius": 5000}'
-```
-
-**4. Upload Medical Report:**
-```bash
-curl -X POST http://localhost:8000/api/upload-report \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -F "file=@/path/to/report.pdf"
-```
-
-Visit `http://localhost:8000/docs` for interactive API documentation.
-
-## Security Features
-
-- JWT-based authentication
-- Secure password hashing (if extended)
-- Environment variable protection
-- CORS middleware configuration
-- Input validation with Pydantic
-
-## Disclaimer
-
-⚠️ **Important**: MediGuide provides general health information and is NOT a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
+## 📄 License
 This project is licensed under the MIT License.
 
-## Support
+## 🆘 Support
+For support, please create an issue in the GitHub repository or contact the development team.
 
-For issues, questions, or suggestions, please open an issue on GitHub.
-
-## Acknowledgments
-
-- FastAPI for the excellent web framework
-- Google for OAuth2, Maps, and Gemini APIs
-- OpenAI for GPT models
-- The open-source community
+## 🔮 Future Enhancements
+- [ ] Mobile app development (React Native)
+- [ ] Advanced AI features (image analysis of medical reports)
+- [ ] Telemedicine integration
+- [ ] Appointment scheduling
+- [ ] Medication reminders
+- [ ] Health tracking and analytics
+- [ ] Multi-language support
+- [ ] Integration with wearable devices

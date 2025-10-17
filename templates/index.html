@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="landing-page">
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>
+                    <i class="fas fa-heartbeat pulse"></i>
+                    MediGuide AI
+                </h1>
+                <p class="hero-subtitle">Your Intelligent Healthcare Assistant</p>
+                <p class="hero-description">
+                    Get instant medical advice, find nearby hospitals, and manage your health with AI-powered insights.
+                </p>
+                <div class="hero-buttons">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Get Started
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-secondary">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Sign In
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="medical-icon-grid">
+                    <div class="medical-icon">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                    <div class="medical-icon">
+                        <i class="fas fa-hospital"></i>
+                    </div>
+                    <div class="medical-icon">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <div class="medical-icon">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="features-section">
+        <div class="container">
+            <h2>Why Choose MediGuide AI?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>AI-Powered Analysis</h3>
+                    <p>Advanced symptom analysis with severity scoring and personalized medical advice.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3>Hospital Finder</h3>
+                    <p>Find nearby hospitals with real-time data, ratings, and specialized care options.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h3>Persistent Chat</h3>
+                    <p>Continuous conversation history with your AI healthcare assistant.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Secure & Private</h3>
+                    <p>Your health data is encrypted and protected with industry-standard security.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
