@@ -3,10 +3,15 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
-import googlemaps
+from typing import List, Optional, Dict
 import google.generativeai as genai
+import googlemaps
+import os
 from datetime import datetime
+import uuid
+import json
+import hashlib
+import secrets
 
 # Load environment variables
 import dotenv
@@ -56,6 +61,26 @@ class ChatMessage(BaseModel):
     timestamp: str
     hospitals: List[Dict] = []
 
+class UserRegister(BaseModel):
+    name: str
+    email: str
+    password: str
+    age: int
+    gender: str
+    location: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    age: int
+    gender: str
+    location: str
+
 class ChatResponse(BaseModel):
     id: str
     message: str
@@ -63,6 +88,119 @@ class ChatResponse(BaseModel):
     severity_score: int
     timestamp: str
     hospitals: Optional[List[dict]] = None
+
+# Authentication helper functions
+def hash_password(password: str) -> str:
+    """Hash password using SHA-256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify password against hash"""
+    return hash_password(password) == hashed
+
+def generate_token() -> str:
+    """Generate a simple token for authentication"""
+    return secrets.token_urlsafe(32)
+
+# In-memory storage for demo
+chat_history = {}  # Store chat history per user: {user_id: [messages]}
+users_db = {}  # Store user data: {email: {id, name, email, password_hash, age, gender, location}}
+current_user = {
+    "id": "user123",
+    "name": "Adithyen",
+    "email": "adithyen@gmail.com"
+}
+
+# API Routes
+@app.get("/")
+async def root():
+    return {"message": "Medi Care AI Backend API"}
+
+@app.post("/api/auth/register")
+async def register_user(user_data: UserRegister):
+    """Register a new user"""
+    try:
+        # Check if user already exists
+        if user_data.email in users_db:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Create new user
+        user_id = str(uuid.uuid4())
+        hashed_password = hash_password(user_data.password)
+        
+        users_db[user_data.email] = {
+            "id": user_id,
+            "name": user_data.name,
+            "email": user_data.email,
+            "password_hash": hashed_password,
+            "age": user_data.age,
+            "gender": user_data.gender,
+            "location": user_data.location
+        }
+        
+        # Generate token
+        token = generate_token()
+        
+        # Return user data (without password)
+        user_response = {
+            "id": user_id,
+            "name": user_data.name,
+            "email": user_data.email,
+            "age": user_data.age,
+            "gender": user_data.gender,
+            "location": user_data.location
+        }
+        
+        return {
+            "token": token,
+            "user": user_response,
+            "message": "Registration successful"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/auth/login")
+async def login_user(login_data: UserLogin):
+    """Login user"""
+    try:
+        # Check if user exists
+        if login_data.email not in users_db:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        user = users_db[login_data.email]
+        
+        # Verify password
+        if not verify_password(login_data.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Generate token
+        token = generate_token()
+        
+        # Return user data (without password)
+        user_response = {
+            "id": user["id"],
+            "name": user["name"],
+            "email": user["email"],
+            "age": user["age"],
+            "gender": user["gender"],
+            "location": user["location"]
+        }
+        
+        return {
+            "token": token,
+            "user": user_response,
+            "message": "Login successful"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/user")
+async def get_user():
+    return current_user
 
 def get_nearby_hospitals_for_chat(latitude: float, longitude: float, limit: int = 3):
     """Get nearby hospitals for chat recommendations"""
@@ -107,38 +245,97 @@ def analyze_symptoms_with_gemini(symptoms: str, user_location: dict = None):
         
         # Check if user is asking about hospitals in a specific location
         symptoms_lower = symptoms.lower()
-        if any(word in symptoms_lower for word in ['hospital', 'hospitals']) and any(city in symptoms_lower for city in ['coimbatore', 'chennai', 'bangalore', 'mumbai', 'delhi']):
-            # Extract city name
-            city = None
-            for c in ['coimbatore', 'chennai', 'bangalore', 'mumbai', 'delhi']:
-                if c in symptoms_lower:
-                    city = c.title()
+        if any(word in symptoms_lower for word in ['hospital', 'hospitals']):
+            # Define hospital data for major cities
+            city_hospitals = {
+                'coimbatore': {
+                    'name': 'Coimbatore',
+                    'hospitals': [
+                        "**Kovai Medical Center (KMCH)**\n   📍 Avinashi Road, Coimbatore\n   📞 0422-4324324\n   ⭐ Multi-specialty hospital with 24/7 emergency",
+                        "**PSG Hospitals**\n   📍 Peelamedu, Coimbatore\n   📞 0422-2570170\n   ⭐ Teaching hospital with all departments",
+                        "**Ganga Hospital**\n   📍 313, Mettupalayam Road, Coimbatore\n   📞 0422-2485000\n   ⭐ Specialized in orthopedics and trauma",
+                        "**Sri Ramakrishna Hospital**\n   📍 395, Sidhapudur, Coimbatore\n   📞 0422-2320100\n   ⭐ Multi-specialty with advanced facilities"
+                    ]
+                },
+                'chennai': {
+                    'name': 'Chennai',
+                    'hospitals': [
+                        "**Apollo Hospitals**\n   📍 Greams Road, Chennai\n   📞 044-2829 3333\n   ⭐ Leading multi-specialty hospital",
+                        "**Fortis Malar Hospital**\n   📍 Adyar, Chennai\n   📞 044-4289 2222\n   ⭐ Advanced cardiac and critical care",
+                        "**MIOT International**\n   📍 Manapakkam, Chennai\n   📞 044-4200 1000\n   ⭐ Multi-organ transplant center",
+                        "**Stanley Medical College**\n   📍 Old Jail Road, Chennai\n   📞 044-2835 3221\n   ⭐ Government teaching hospital"
+                    ]
+                },
+                'bangalore': {
+                    'name': 'Bangalore',
+                    'hospitals': [
+                        "**Manipal Hospital**\n   📍 HAL Airport Road, Bangalore\n   📞 080-2502 4444\n   ⭐ Multi-specialty tertiary care",
+                        "**Fortis Hospital**\n   📍 Bannerghatta Road, Bangalore\n   📞 080-6621 4444\n   ⭐ Advanced medical care",
+                        "**Narayana Health**\n   📍 Bommasandra, Bangalore\n   📞 080-7122 7979\n   ⭐ Cardiac and multi-specialty",
+                        "**St. John's Medical College**\n   📍 Koramangala, Bangalore\n   📞 080-4963 3001\n   ⭐ Teaching hospital"
+                    ]
+                },
+                'mumbai': {
+                    'name': 'Mumbai',
+                    'hospitals': [
+                        "**Kokilaben Dhirubhai Ambani Hospital**\n   📍 Andheri West, Mumbai\n   📞 022-4269 6969\n   ⭐ Multi-specialty tertiary care",
+                        "**Lilavati Hospital**\n   📍 Bandra West, Mumbai\n   📞 022-2640 4040\n   ⭐ Multi-specialty hospital",
+                        "**Breach Candy Hospital**\n   📍 Breach Candy, Mumbai\n   📞 022-2367 8888\n   ⭐ Premium healthcare services",
+                        "**Tata Memorial Hospital**\n   📍 Parel, Mumbai\n   📞 022-2417 7000\n   ⭐ Cancer treatment center"
+                    ]
+                },
+                'delhi': {
+                    'name': 'Delhi',
+                    'hospitals': [
+                        "**AIIMS Delhi**\n   📍 Ansari Nagar, New Delhi\n   📞 011-2658 8500\n   ⭐ Premier medical institute",
+                        "**Max Super Speciality Hospital**\n   📍 Saket, New Delhi\n   📞 011-2651 5050\n   ⭐ Multi-specialty care",
+                        "**Fortis Escorts Heart Institute**\n   📍 Okhla Road, New Delhi\n   📞 011-4713 5000\n   ⭐ Cardiac specialty hospital",
+                        "**Apollo Hospital**\n   📍 Sarita Vihar, New Delhi\n   📞 011-2692 5858\n   ⭐ Multi-specialty hospital"
+                    ]
+                }
+            }
+            
+            # Check if specific city mentioned
+            city_found = None
+            for city_key in city_hospitals.keys():
+                if city_key in symptoms_lower:
+                    city_found = city_key
                     break
             
-            # Return specific hospital recommendations for the city
-            if city == 'Coimbatore':
+            # If user location provided, try to determine city from coordinates
+            if not city_found and user_location:
+                # Simple coordinate-based city detection (you can enhance this)
+                lat, lng = user_location['latitude'], user_location['longitude']
+                if 11.0 <= lat <= 11.1 and 76.9 <= lng <= 77.1:  # Coimbatore approx
+                    city_found = 'coimbatore'
+                elif 13.0 <= lat <= 13.2 and 80.1 <= lng <= 80.3:  # Chennai approx
+                    city_found = 'chennai'
+                elif 12.9 <= lat <= 13.0 and 77.5 <= lng <= 77.7:  # Bangalore approx
+                    city_found = 'bangalore'
+                elif 19.0 <= lat <= 19.3 and 72.7 <= lng <= 73.0:  # Mumbai approx
+                    city_found = 'mumbai'
+                elif 28.4 <= lat <= 28.7 and 77.0 <= lng <= 77.4:  # Delhi approx
+                    city_found = 'delhi'
+            
+            if city_found and city_found in city_hospitals:
+                city_data = city_hospitals[city_found]
+                hospital_list = '\n\n'.join([f"{i+1}. {hospital}" for i, hospital in enumerate(city_data['hospitals'])])
+                
                 return {
-                    'response': f"""Top hospitals in {city}:
+                    'response': f"""Top hospitals in {city_data['name']}:
 
-1. **Kovai Medical Center (KMCH)**
-   📍 Avinashi Road, Coimbatore
-   📞 0422-4324324
-   ⭐ Multi-specialty hospital with 24/7 emergency
+{hospital_list}
 
-2. **PSG Hospitals**
-   📍 Peelamedu, Coimbatore  
-   📞 0422-2570170
-   ⭐ Teaching hospital with all departments
-
-3. **Ganga Hospital**
-   📍 313, Mettupalayam Road, Coimbatore
-   📞 0422-2485000
-   ⭐ Specialized in orthopedics and trauma
-
-4. **Sri Ramakrishna Hospital**
-   📍 395, Sidhapudur, Coimbatore
-   📞 0422-2320100
-   ⭐ Multi-specialty with advanced facilities
+Note: This is AI guidance. Consult a healthcare provider.""",
+                    'severity_score': 30,
+                    'hospitals': [],
+                    'timestamp': datetime.now().strftime("%I:%M %p")
+                }
+            
+            # If no specific city found, ask for location
+            if not city_found:
+                return {
+                    'response': """I can help you find hospitals! Please specify your city (Coimbatore, Chennai, Bangalore, Mumbai, Delhi) or share your location for personalized recommendations.
 
 Note: This is AI guidance. Consult a healthcare provider.""",
                     'severity_score': 30,
@@ -228,10 +425,6 @@ class User(BaseModel):
     name: str
     email: str
 
-# In-memory chat storage (replace with database in production)
-chat_storage = {}
-
-# Hardcoded data for testing
 HARDCODED_RESPONSES = {
     "headache": {
         "response": "Based on your headache symptoms, here's what I recommend:\n\n🧠 **Assessment**: Headaches can have various causes including stress, dehydration, or tension.\n\n💡 **Immediate Care**:\n- Rest in a dark, quiet room\n- Stay hydrated with water\n- Apply a cold or warm compress\n- Consider over-the-counter pain relievers if needed\n\n⚠️ **Seek medical attention if**:\n- Severe or sudden onset\n- Accompanied by fever, stiff neck, or vision changes\n- Persistent for more than 24 hours\n\n📍 Would you like me to find nearby hospitals or clinics?",
@@ -284,26 +477,10 @@ HARDCODED_HOSPITALS = [
     }
 ]
 
-# In-memory storage for demo
-chat_history = []
-current_user = {
-    "id": "user123",
-    "name": "Adithyen",
-    "email": "adithyen@gmail.com"
-}
-
-@app.get("/")
-async def root():
-    return {"message": "Welcome to Medi Care API"}
-
-@app.get("/api/user")
-async def get_user():
-    return current_user
-
 @app.get("/api/chat/history/{user_id}")
 async def get_chat_history(user_id: str):
     """Get chat history for a specific user"""
-    user_chats = chat_storage.get(user_id, [])
+    user_chats = chat_history.get(user_id, [])
     return {"history": user_chats}
 
 @app.post("/api/chat/send")
@@ -327,9 +504,9 @@ async def send_chat_message(request: ChatRequest):
         
         # Store chat in memory (persistent across sessions)
         user_id = request.user_id
-        if user_id not in chat_storage:
-            chat_storage[user_id] = []
-        chat_storage[user_id].append(chat_response)
+        if user_id not in chat_history:
+            chat_history[user_id] = []
+        chat_history[user_id].append(chat_response)
         
         return chat_response
         

@@ -13,10 +13,9 @@
 }
 
 .chat-layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 1.5rem;
-  max-width: 1200px;
+  display: flex;
+  justify-content: center;
+  height: 100%;
   margin: 0 auto;
   height: calc(100vh - 140px);
 }
@@ -24,6 +23,11 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .chat-layout {
+    display: flex;
+    justify-content: center;
+    height: 100%;
+    margin: 0 auto;
+    height: calc(100vh - 140px);
     grid-template-columns: 1fr 280px;
     gap: 1rem;
   }

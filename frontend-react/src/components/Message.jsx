@@ -41,7 +41,14 @@ const Message = ({ content, sender, timestamp, severityScore }) => {
         
         {timestamp && (
           <div className="message-timestamp">
-            {new Date(timestamp).toLocaleTimeString()}
+            {(() => {
+              try {
+                const date = new Date(timestamp);
+                return isNaN(date.getTime()) ? 'Just now' : date.toLocaleTimeString();
+              } catch (error) {
+                return 'Just now';
+              }
+            })()}
           </div>
         )}
       </div>

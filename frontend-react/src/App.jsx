@@ -1,95 +1,147 @@
 import React, { useState, useEffect } from 'react'
-import Header from './components/Header'
 import ChatContainer from './components/ChatContainer'
-import Sidebar from './components/Sidebar'
+import Login from './components/Login'
+import Register from './components/Register'
 import './App.css'
 
 function App() {
+  const [messages, setMessages] = useState([])
   const [user, setUser] = useState(null)
-  const [chatHistory, setChatHistory] = useState([])
-  const [hospitals, setHospitals] = useState([])
+  const [authMode, setAuthMode] = useState('login') // 'login' or 'register'
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  // Check for existing authentication on app load
   useEffect(() => {
-    // Load user data and chat history on app start
-    loadUserData()
-    loadChatHistory()
+    const token = localStorage.getItem('medicare_token')
+    const userData = localStorage.getItem('medicare_user')
+    
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+        setIsAuthenticated(true)
+        loadChatHistory(parsedUser.id)
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+        localStorage.removeItem('medicare_token')
+        localStorage.removeItem('medicare_user')
+      }
+    }
   }, [])
 
-  const loadUserData = async () => {
-    // Use hardcoded user data directly
-    setUser({
-      id: 'user123',
-      name: 'Adithyen',
-      email: 'adithyen@gmail.com'
-    })
-  }
-
-  const loadChatHistory = async () => {
-    // Use hardcoded chat history for demo
-    setChatHistory([])
-  }
-
-  const sendMessage = async (message) => {
+  const loadChatHistory = async (userId) => {
     try {
-      // Get user location if available
-      let userLocation = null;
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject);
-          });
-          userLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          };
-        } catch (error) {
-          console.log('Location not available:', error);
+      const response = await fetch(`http://localhost:8000/api/chat/history/${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.history && Array.isArray(data.history)) {
+          setMessages(data.history)
         }
       }
+    } catch (error) {
+      console.error('Failed to load chat history:', error)
+    }
+  }
 
+  const handleLogin = (userData) => {
+    setUser(userData)
+    setIsAuthenticated(true)
+    loadChatHistory(userData.id)
+  }
+
+  const handleRegister = (userData) => {
+    setUser(userData)
+    setIsAuthenticated(true)
+    loadChatHistory(userData.id)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('medicare_token')
+    localStorage.removeItem('medicare_user')
+    setUser(null)
+    setIsAuthenticated(false)
+    setMessages([])
+  }
+
+  const sendMessage = async (message, location = null) => {
+    if (!user) return
+
+    const userMessage = {
+      id: Date.now().toString(),
+      message,
+      isUser: true,
+      timestamp: new Date().toISOString()
+    }
+
+    setMessages(prev => [...prev, userMessage])
+
+    try {
       const response = await fetch('http://localhost:8000/api/chat/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message,
-          user_location: userLocation
+          user_location: location,
+          user_id: user.id
         }),
       })
 
-      if (!response.ok) {
+      if (response.ok) {
+        const data = await response.json()
+        const aiMessage = {
+          id: data.id,
+          message: data.response,
+          isUser: false,
+          timestamp: data.timestamp,
+          severityScore: data.severity_score,
+          hospitals: data.hospitals
+        }
+        setMessages(prev => [...prev, aiMessage])
+      } else {
         throw new Error('Failed to send message')
       }
-
-      const data = await response.json()
-      setChatHistory(prev => [...prev, data])
     } catch (error) {
       console.error('Error sending message:', error)
-      // Add error message to chat
-      setChatHistory(prev => [...prev, {
-        id: Date.now(),
-        message: message,
-        response: 'Sorry, I encountered an error. Please try again.',
-        severity_score: 0,
-        timestamp: new Date().toISOString()
-      }])
+      const errorMessage = {
+        id: Date.now().toString(),
+        message: 'Sorry, I encountered an error. Please try again.',
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString()
+      }
+      setMessages(prev => [...prev, errorMessage])
     }
   }
 
-  return (
-    <div className="app">
-      <Header user={user} />
-      <main className="main-content">
-        <div className="chat-layout">
-          <ChatContainer 
-            user={user}
-            chatHistory={chatHistory}
-            onSendMessage={sendMessage}
+  if (!isAuthenticated) {
+    return (
+      <div className="App">
+        {authMode === 'login' ? (
+          <Login 
+            onLogin={handleLogin}
+            onSwitchToRegister={() => setAuthMode('register')}
           />
-          <Sidebar hospitals={hospitals} onHospitalsUpdate={setHospitals} />
-        </div>
-      </main>
+        ) : (
+          <Register 
+            onRegister={handleRegister}
+            onSwitchToLogin={() => setAuthMode('login')}
+          />
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="App">
+      <div className="main-content">
+        <ChatContainer 
+          messages={messages} 
+          onSendMessage={sendMessage}
+          user={user}
+          onLogout={handleLogout}
+        />
+      </div>
     </div>
   )
 }

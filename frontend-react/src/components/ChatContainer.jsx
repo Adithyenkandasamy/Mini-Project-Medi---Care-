@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User } from 'lucide-react'
+import { Send, MapPin, Mic, MicOff, LogOut, User, Bot } from 'lucide-react'
 import Message from './Message'
-import TypingIndicator from './TypingIndicator'
 import './ChatContainer.css'
 
-const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
+const ChatContainer = ({ messages, onSendMessage, user, onLogout }) => {
   const [message, setMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
@@ -16,7 +15,7 @@ const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
 
   useEffect(() => {
     scrollToBottom()
-  }, [chatHistory, isTyping])
+  }, [messages, isTyping])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -59,11 +58,20 @@ const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h2>
-          <Bot className="header-icon" />
-          Medi Care AI Assistant
-        </h2>
-        <p>Describe your symptoms and get personalized medical advice</p>
+        <div className="header-left">
+          <h1>🏥 Medi Care AI Doctor</h1>
+          <p>Your personal healthcare assistant</p>
+        </div>
+        <div className="header-right">
+          <div className="user-info">
+            <User size={20} />
+            <span>{user?.name}</span>
+          </div>
+          <button onClick={onLogout} className="logout-btn">
+            <LogOut size={20} />
+            Logout
+          </button>
+        </div>
       </div>
 
       <div className="chat-messages">
@@ -86,24 +94,18 @@ const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
         </div>
 
         {/* Chat History */}
-        {chatHistory.map((chat, index) => (
-          <div key={chat.id || index}>
-            <Message
-              content={chat.message}
-              sender="user"
-              timestamp={chat.timestamp}
-            />
-            <Message
-              content={chat.response}
-              sender="bot"
-              timestamp={chat.timestamp}
-              severityScore={chat.severity_score}
-            />
-          </div>
+        {messages.map((msg, index) => (
+          <Message
+            key={msg.id || index}
+            content={msg.message}
+            sender={msg.isUser ? "user" : "bot"}
+            timestamp={msg.timestamp}
+            severityScore={msg.severityScore}
+          />
         ))}
 
         {/* Sample messages for demo */}
-        {chatHistory.length === 0 && (
+        {messages.length === 0 && (
           <div className="sample-messages">
             <p style={{textAlign: 'center', color: '#666', margin: '2rem 0'}}>
               Try these sample messages:
@@ -111,7 +113,13 @@ const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
             <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center'}}>
               <button 
                 className="sample-btn"
-                onClick={() => handleSubmit({preventDefault: () => {}, target: {querySelector: () => ({value: "I have a headache"})}})}
+                onClick={() => {
+                  setMessage("I have a headache")
+                  setTimeout(() => {
+                    const event = { preventDefault: () => {} }
+                    handleSubmit(event)
+                  }, 100)
+                }}
                 style={{
                   padding: '0.5rem 1rem',
                   background: 'rgba(102, 126, 234, 0.1)',
@@ -126,7 +134,13 @@ const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
               </button>
               <button 
                 className="sample-btn"
-                onClick={() => handleSubmit({preventDefault: () => {}, target: {querySelector: () => ({value: "I'm running a fever"})}})}
+                onClick={() => {
+                  setMessage("I'm running a fever")
+                  setTimeout(() => {
+                    const event = { preventDefault: () => {} }
+                    handleSubmit(event)
+                  }, 100)
+                }}
                 style={{
                   padding: '0.5rem 1rem',
                   background: 'rgba(102, 126, 234, 0.1)',
@@ -141,7 +155,13 @@ const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
               </button>
               <button 
                 className="sample-btn"
-                onClick={() => handleSubmit({preventDefault: () => {}, target: {querySelector: () => ({value: "I have chest pain"})}})}
+                onClick={() => {
+                  setMessage("hospitals in coimbatore")
+                  setTimeout(() => {
+                    const event = { preventDefault: () => {} }
+                    handleSubmit(event)
+                  }, 100)
+                }}
                 style={{
                   padding: '0.5rem 1rem',
                   background: 'rgba(102, 126, 234, 0.1)',
@@ -152,14 +172,27 @@ const ChatContainer = ({ user, chatHistory, onSendMessage }) => {
                   fontSize: '0.9rem'
                 }}
               >
-                "I have chest pain"
+                "hospitals in coimbatore"
               </button>
             </div>
           </div>
         )}
 
         {/* Typing Indicator */}
-        {isTyping && <TypingIndicator />}
+        {isTyping && (
+          <div className="message bot-message">
+            <div className="message-avatar">
+              <Bot size={20} />
+            </div>
+            <div className="message-content">
+              <div className="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div ref={messagesEndRef} />
       </div>
